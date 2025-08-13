@@ -64,7 +64,7 @@ body, html, #root {
 
 /* CONTAINER */
 .container {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 2rem auto;
   padding: 2rem;
   background-color: #ffffff;
@@ -73,7 +73,7 @@ body, html, #root {
   animation: fadeIn 0.5s ease-in-out;
 }
 
-/* FORM FIELDS */
+/* FORM LAYOUT */
 label {
   display: block;
   margin-top: 1rem;
@@ -81,6 +81,25 @@ label {
   color: #2c3e50;
 }
 
+/* Two-column grid for create form; use .full to span both columns */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+/* Right-aligned Edit/Cancel bar (above Short Description) */
+.actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Inputs */
 input, select {
   width: 100%;
   padding: 12px;
@@ -118,18 +137,25 @@ button:hover {
 }
 
 /* TABLE */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;        /* lets wide tables scroll on small screens */
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1.5rem;
   font-size: 0.95rem;
   animation: fadeIn 0.6s ease-in;
+  min-width: 800px;        /* ensures columns don’t squash too hard */
 }
 
 th, td {
   padding: 12px;
   border: 1px solid #dee2e6;
   text-align: left;
+  vertical-align: top;
 }
 
 th {
@@ -141,6 +167,28 @@ th {
 tr:hover {
   background-color: #e6f7ff;
   transition: background-color 0.3s ease;
+}
+
+/* TicketIds link styles */
+a.id-link {
+  color: #0a66c2;
+  text-decoration: underline;
+}
+a.id-link:hover {
+  color: #074785;
+}
+
+/* When a ticket is cancelled, we render a span instead of a link
+   and gray out ONLY the TicketIds cell */
+.id-cell--cancelled {
+  background-color: #e9ecef;
+}
+.id-text-disabled {
+  color: #9aa0a6;
+  cursor: not-allowed;
+  pointer-events: none; /* safety, even though it’s a span */
+  text-decoration: none;
+  font-weight: 600;
 }
 
 /* SUCCESS / MESSAGE */
@@ -155,6 +203,24 @@ tr:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   animation: popupSlideIn 0.5s ease-out;
 }
+
+/* OPTIONAL: Color pills for Priority/Severity if you choose to style values */
+.pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.pill--p1 { background: #ffe3e3; color: #b00020; }
+.pill--p2 { background: #fff1cc; color: #b26a00; }
+.pill--p3 { background: #e7f3ff; color: #005e99; }
+.pill--p4 { background: #e7ffe7; color: #0b6b0b; }
+
+.pill--high   { background: #ffe3e3; color: #a31212; }
+.pill--medium { background: #fff1cc; color: #8a5a00; }
+.pill--low    { background: #e7ffe7; color: #0b6b0b; }
 
 /* ANIMATIONS */
 @keyframes fadeIn {
@@ -173,18 +239,90 @@ tr:hover {
 }
 
 /* RESPONSIVE */
+@media (max-width: 900px) {
+  .form-grid {
+    grid-template-columns: 1fr; /* collapse to 1 column on small screens */
+  }
+}
+
 @media (max-width: 768px) {
   .navbar-menu {
     flex-direction: column;
     gap: 1rem;
   }
-
   .container {
     margin: 1rem;
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
-
   button {
     width: 100%;
+  }
+}
+
+
+
+
+/* ===== ViewTickets table: sticky header + no horizontal scroll ===== */
+.tickets-table-scroll {
+  max-height: 65vh;           /* vertical scroll area inside the page */
+  overflow-y: auto;           /* vertical scroll */
+  overflow-x: hidden;         /* no horizontal scroll */
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+/* Fixed layout + wrapping prevents horizontal overflow */
+.tickets-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;        /* important: enables wrapping in cells */
+  font-size: 0.95rem;
+}
+
+.tickets-table th,
+.tickets-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;        /* allow wrapping */
+  word-wrap: break-word;      /* legacy */
+  overflow-wrap: anywhere;    /* modern: breaks long strings/URLs */
+}
+
+/* Sticky header */
+.tickets-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #00adb5;  /* matches your theme */
+  color: #fff;
+  text-transform: none;       /* keep exact labels you asked for */
+  box-shadow: 0 2px 0 rgba(0,0,0,0.05);
+}
+
+/* Row hover (optional) */
+.tickets-table tbody tr:hover {
+  background-color: #f7fbff;
+}
+
+/* Tighten spacing on narrower viewports to fit all columns comfortably */
+@media (max-width: 1100px) {
+  .tickets-table {
+    font-size: 0.9rem;
+  }
+  .tickets-table th,
+  .tickets-table td {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .tickets-table {
+    font-size: 0.85rem;
+  }
+  .tickets-table th,
+  .tickets-table td {
+    padding: 6px;
   }
 }
