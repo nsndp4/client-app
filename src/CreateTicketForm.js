@@ -6,7 +6,7 @@ const apiBase = 'http://localhost:8080/api/v1/tickets';
 /**
  * Collects (all required in UI, except server-set fields):
  * - reportedBy, shortDescription, description, priority(P4..P1),
- *   severity(high/medium/low), assignedTo, comments, appName
+ *   severity(high/medium/low), assignedTo, comments, onfigurationItem
  *
  * Server sets:
  * - ticketsIds, createdDate, status
@@ -29,7 +29,7 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
   const [severity, setSeverity]                   = useState('');
   const [assignedTo, setAssignedTo]               = useState('');
   const [comments, setComments]                   = useState('');  // comma-separated entry
-  const [appName, setAppName]                     = useState('');
+  const [configurationItem, setConfigurationItem] = useState('');
 
   const [submitting, setSubmitting]               = useState(false);
   const [errors, setErrors]                       = useState({});
@@ -45,7 +45,7 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
     if (!severity)                next.severity         = 'Severity is required';
     if (!assignedTo.trim())       next.assignedTo       = 'Assigned To is required';
     if (!comments.trim())         next.comments         = 'Comments are required';
-    if (!appName)                 next.appName          = 'App name is required';
+    if (!configurationItem)       next.configurationItem= 'configuration Item is required';
 
     setErrors(next);
     if (Object.keys(next).length) {
@@ -63,7 +63,7 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
     setSeverity('');
     setAssignedTo('');
     setComments('');
-    setAppName('');
+    setConfigurationItem('');
     setErrors({});
   };
 
@@ -88,8 +88,8 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
       severity:severity,
       assignedTo: assignedTo,
       comments: commentsArr, // <- array of objects
-      // severity/appName are not sent if backend doesn't support them yet
-      appName:appName
+      // severity/configurationItem are not sent if backend doesn't support them yet
+      configurationItem:configurationItem
     };
 
     try {
@@ -122,7 +122,7 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
             severity,
             assignedTo,
             comments: commentsArr, // keep same array-of-objects shape
-            appName
+            configurationItem
           };
           localStorage.setItem('ticketExtras', JSON.stringify(extras));
         }
@@ -220,11 +220,11 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
       />
       <FieldError name="comments" />
 
-      <label>appName *</label>
+      <label>configurationItem *</label>
       <select
-        value={appName}
-        onChange={(e) => { setAppName(e.target.value); if (errors.appName) setErrors(p=>({...p,appName:undefined})); }}
-        aria-invalid={!!errors.appName}
+        value={configurationItem}
+        onChange={(e) => { setConfigurationItem(e.target.value); if (errors.configurationItem) setErrors(p=>({...p,configurationItem:undefined})); }}
+        aria-invalid={!!errors.configurationItem}
       >
         <option value="">Select</option>
         <option value="Frontend">Frontend</option>
@@ -232,7 +232,7 @@ export default function CreateTicketForm({ onCreated, setMessage }) {
         <option value="Network">Network</option>
         <option value="Service">Service</option>
       </select>
-      <FieldError name="appName" />
+      <FieldError name="configurationItem" />
 
       <button type="submit" disabled={submitting}>
         {submitting ? 'Submitting…' : 'Submit Ticket'}

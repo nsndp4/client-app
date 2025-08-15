@@ -63,7 +63,7 @@ export default function ViewTickets({ forceReloadKey }) {
           status:           val(raw, ['status','Status'], local.status || ''), // backend-owned ideally
           assignedTo:       val(raw, ['assignedTo','assignee','AssignedTo'], local.assignedTo || ''),
           comments:         commentsStr || '',
-          appName:          val(raw, ['appName','configurationItem','configurationitem'], local.appName || ''),
+          configurationItem:          val(raw, ['configurationItem','configurationitem','appName'], local.configurationItem || ''),
         };
       });
 
@@ -137,7 +137,7 @@ export default function ViewTickets({ forceReloadKey }) {
                 <th>status</th>
                 <th>assignedTo</th>
                 <th>comments</th>
-                <th>appName</th>
+                <th>configurationItem</th>
               </tr>
             </thead>
 
@@ -150,7 +150,9 @@ export default function ViewTickets({ forceReloadKey }) {
                 tickets.map((t, idx) => (
                   <tr key={idx}>
                     <td>{t.ticketsIds || '-'}</td>
-                    <td>{t.createdDate || '-'}</td>
+                    <td>{t.createdDate
+                          ? new Date(t.createdDate).toLocaleString()
+                          :'-'}</td>
                     <td>{t.reportedBy || '-'}</td>
                     <td>{t.shortDescription || '-'}</td>
                     <td>{t.description || '-'}</td>
@@ -159,7 +161,7 @@ export default function ViewTickets({ forceReloadKey }) {
                     <td>{t.status || '-'}</td>
                     <td>{t.assignedTo || '-'}</td>
                     <td>{t.comments || '-'}</td>
-                    <td>{t.appName || '-'}</td>
+                    <td>{t.configurationItem || '-'}</td>
                   </tr>
                 ))
               )}
