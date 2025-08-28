@@ -19,6 +19,7 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
     description: '',
     createdBy: '',
     createdDate: '',
+    lastModifiedDate: '',
     impact: '',
     urgency: '',
     priority: '',
@@ -34,13 +35,12 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
   const impactOptions = ['High', 'Medium', 'Low'];
   const priorityOptions = ['P4', 'P3', 'P2', 'P1'];
   const urgencyOptions = ['High', 'Medium', 'Low'];
-  const allStates = ['New', 'InProgress', 'OnHold', 'Resolved', 'Closed', 'Canceled'];
 
   const nonEditableFieldsInEdit = [
     'onBehalfOf', 'platform', 'impactedLOB', 'impact', 'regulatoryImpact',
     'supportAgreementName', 'category', 'jiraReference', 'urgency',
     'totalImpactDuration', 'configurationItem', 'subcategory', 'createdBy',
-    'priority', 'reportedBy','createdDate'
+    'priority', 'reportedBy','createdDate','lastModifiedDate'
   ];
 
   const [form, setForm] = useState(initialForm);
@@ -62,7 +62,7 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
 
   const validate = () => {
     const next = {};
-    const requiredFields = ['onBehalfOf','configurationItem','category','subcategory','shortDescription','assignedTo','assignedGroup','createdBy'];
+    const requiredFields = ['onBehalfOf','configurationItem','category','subcategory','shortDescription','assignedGroup','createdBy'];
     requiredFields.forEach(f => {
       if (!form[f]?.trim()) next[f] = `${f} is required`;
     });
@@ -76,7 +76,19 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+
+    setForm(prev => {
+      let updated = { ...prev, [name]: value };
+
+      // ✅ Automatic transition rule:
+      // When assignedTo is filled, status → InProgress (but only if not already canceled/closed).
+      if (name === "assignedTo" && value.trim() !== "" && prev.status === "New") {
+        updated.status = "InProgress";
+      }
+
+      return updated;
+    });
+
     if (errors[name]) setErrors(p => ({ ...p, [name]: undefined }));
   };
 
@@ -107,28 +119,23 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
   const handleEdit = () => setEditable(true);
   const handleCancel = () => onCreated?.();
 
-  const isStateSelectable = (stateOption) => {
-    const current = form.status;
-
-    if (!editable) return false;
-
-    if (current === "Closed" || current === "Canceled") {
-      return stateOption === current;
-    }
-
-    if (current === "Resolved") {
-      return ["Resolved", "Closed", "Canceled"].includes(stateOption);
-    }
-
-    const currentIndex = allStates.indexOf(current);
-    const optionIndex = allStates.indexOf(stateOption);
-
-    if (current === "OnHold") {
-      return optionIndex <= currentIndex || optionIndex === currentIndex + 1;
-    }
-
-    return optionIndex >= currentIndex && optionIndex <= currentIndex + 1;
-  };
+  // ✅ API call for status updates
+const updateStatus = async (newStatus) => {
+  try {
+    const payload = { ...form, status: newStatus };
+    const res = await fetch(`${apiBase}/createIncidentTicket`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error("Failed to update status");
+    const updated = await res.json();
+    setForm(updated);
+    setMessage(`✅ Status updated to ${newStatus}`);
+  } catch (err) {
+    setMessage("❌ Could not update status");
+  }
+};
 
   const fullWidthFields = ['shortDescription', 'description', 'notes'];
 
@@ -143,37 +150,20 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
   };
 
   const renderField = (key) => {
-    const isDisabled = !editable || (incidentData && nonEditableFieldsInEdit.includes(key));
+    const isDisabled =
+      !editable ||
+      (incidentData && nonEditableFieldsInEdit.includes(key)) ||
+      (key === "assignedTo" && !incidentData );  // ✅ assignedTo only editable in edit mode
 
-    if (key === 'configurationItem') {
+    if (['configurationItem','impact','priority','urgency'].includes(key)) {
+      const options = key === 'configurationItem' ? configurationOptions
+                     : key === 'impact' ? impactOptions
+                     : key === 'priority' ? priorityOptions
+                     : urgencyOptions;
       return (
         <select name={key} value={form[key]} onChange={handleChange} disabled={isDisabled} className="animated-input">
           <option value="">-- Select --</option>
-          {configurationOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-      );
-    }
-    if (key === 'impact') {
-      return (
-        <select name={key} value={form[key]} onChange={handleChange} disabled={isDisabled} className="animated-input">
-          <option value="">-- Select --</option>
-          {impactOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-      );
-    }
-    if (key === 'priority') {
-      return (
-        <select name={key} value={form[key]} onChange={handleChange} disabled={isDisabled} className="animated-input">
-          <option value="">-- Select --</option>
-          {priorityOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-      );
-    }
-    if (key === 'urgency') {
-      return (
-        <select name={key} value={form[key]} onChange={handleChange} disabled={isDisabled} className="animated-input">
-          <option value="">-- Select --</option>
-          {urgencyOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
       );
     }
@@ -195,23 +185,53 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
       <form onSubmit={handleSubmit} noValidate>
         {incidentData && (
           <>
+            {/* ✅ Dynamic Status Action Buttons */}
             <div className="state-header">
-              {allStates.map((state, index) => {
-                const selectable = isStateSelectable(state);
-                return (
-                  <React.Fragment key={state}>
-                    <span
-                      className={`state-item ${form.status === state ? "active" : ""} ${!selectable ? "disabled" : ""}`}
-                      onClick={() => selectable && setForm(prev => ({ ...prev, status: state }))}
-                    >
-                      {state}
-                    </span>
-                    {index < allStates.length - 1 && <span className="arrow">→</span>}
-                  </React.Fragment>
-                );
-              })}
+              <span className="state-item active">{form.status}</span>
             </div>
 
+            <div className="actions-bar" style={{ margin: '1rem 0' }}>
+              {editable && (
+                <>
+                  {form.status === "New" && !incidentData && (
+                    <button type="button" onClick={() => updateStatus("InProgress")}>
+                      Assign & Start
+                    </button>
+                  )}
+
+                  {form.status === "InProgress" && (
+                    <>
+                      <button type="button" onClick={() => updateStatus("OnHold")}>On Hold</button>
+                      <button type="button" onClick={() => updateStatus("Resolved")}>Resolve</button>
+                      <button type="button" onClick={() => updateStatus("Canceled")}>Cancel</button>
+                    </>
+                  )}
+
+                  {form.status === "OnHold" && (
+                    <>
+                      <button type="button" onClick={() => updateStatus("InProgress")}>In Progress</button>
+                      <button type="button" onClick={() => updateStatus("New")}>New</button>
+                    </>
+                  )}
+
+                  {form.status === "Resolved" && (
+                    <>
+                      <button type="button" onClick={() => updateStatus("Closed")}>Close</button>
+                    </>
+                  )}
+
+                  {form.status === "Closed" && (
+                    <button type="button" onClick={() => updateStatus("InProgress")}>ReOpen</button>
+                  )}
+
+                  {form.status === "Canceled" && (
+                    <span style={{ color: "red" }}>This incident is canceled and cannot be updated.</span>
+                  )}
+                </>
+              )}
+            </div>
+            
+            {/* Ticket Number */}
             <div style={{ marginBottom: '1rem' }}>
               <label>Ticket Number</label>
               <input type="text" name="ticketNumber" value={form.ticketNumber} disabled />
@@ -219,6 +239,7 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
           </>
         )}
 
+        {/* Form Fields */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -232,7 +253,7 @@ export default function CreateIncidentTicket({ onCreated, setMessage, incidentDa
                 k !=='id' &&
                 k !== 'ticketNumber' && 
                 k !== 'status' &&
-                (incidentData?true:k!=='createdDate')
+                (incidentData?true:(k!=='createdDate'&& k!=='lastModifiedDate'))
               )
             .map((key) => (
               <React.Fragment key={key}>

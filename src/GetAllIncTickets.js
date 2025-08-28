@@ -64,6 +64,7 @@ export default function GetAllIncidentTickets({ forceReloadKey, onEditClick }) {
               <th>Description</th>
               <th>Created By</th>
               <th>Created Date</th>
+              <th>Last Modified Date</th>
               <th>Impact</th>
               <th>Urgency</th>
               <th>Priority</th>
@@ -98,6 +99,7 @@ export default function GetAllIncidentTickets({ forceReloadKey, onEditClick }) {
                 <td>{ticket.description}</td>
                 <td>{ticket.createdBy}</td>
                 <td>{ticket.createdDate}</td>
+                <td>{ticket.lastModifiedDate}</td>
                 <td>{ticket.impact}</td>
                 <td>{ticket.urgency}</td>
                 <td>{ticket.priority}</td>
